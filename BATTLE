@@ -1,10 +1,10 @@
--- Usamos _G para evitar el error de valor nulo en tu inyector
-if _G.HitboxToggleScript then return end
-_G.HitboxToggleScript = true
+if getgenv().HitboxToggleScript then return end
+getgenv().HitboxToggleScript = true
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -12,26 +12,24 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIGURACIÓN DEL SISTEMA
 -- ==========================================
 local expanderActivado = false 
-local tamañoMasivo = Vector3.new(15, 15, 15) -- Tamaño gigante de la hitbox
-local tamañoNormal = Vector3.new(2, 2, 1)    -- Tamaño normal de Roblox
+local tamañoMasivo = Vector3.new(15, 15, 15) 
+local tamañoNormal = Vector3.new(2, 2, 1)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (UI NORMAL Y ESTABLE)
+-- INTERFAZ GRÁFICA (OCULTA EN COREGUI)
 -- ==========================================
+-- Usamos exactamente tu método comprobado para evadir el Anti-Cheat
+local hiddenUI = (gethui and gethui()) or CoreGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HitboxGUI"
-screenGui.ResetOnSpawn = false
-
--- Enviamos la UI directo a tu pantalla para evitar bloqueos del inyector
-local playerGui = LocalPlayer:FindFirstChild("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui")
-screenGui.Parent = playerGui
+screenGui.Parent = hiddenUI
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 70)
 frame.Position = UDim2.new(0.02, 0, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 frame.BorderSizePixel = 2
-frame.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Inicia en rojo (Apagado)
+frame.BorderColor3 = Color3.fromRGB(255, 0, 0) 
 frame.Parent = screenGui
 
 local textLabel = Instance.new("TextLabel")
@@ -57,16 +55,13 @@ hideLabel.Parent = frame
 -- CONTROL DE TECLAS (TOGGLE E INSERT)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- Ocultar/Mostrar el pequeño menú visual
     if input.KeyCode == Enum.KeyCode.Insert then
         screenGui.Enabled = not screenGui.Enabled
     end
 
-    -- Activar/Desactivar el expansor con la letra 'P'
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
-        expanderActivado = not expanderActivado -- Esto crea el efecto "Toggle"
+        expanderActivado = not expanderActivado 
         
-        -- Actualiza los colores y el texto de la interfaz
         if expanderActivado then
             frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
             textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -74,7 +69,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         else
             frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
             textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-            textLabel.Text = "[ HITBOX: APAGADO ]"
+            textLabel.Text = "[ HITBOX: APAGADA ]"
         end
     end
 end)
@@ -84,20 +79,17 @@ end)
 -- ==========================================
 RunService.RenderStepped:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
-        -- Solo alteramos a los enemigos, tu personaje se queda normal
         if player ~= LocalPlayer and player.Character then
             local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
             
             if rootPart then
                 if expanderActivado then
-                    -- ESTADO ENCENDIDO: Caja de colisión gigante (Asegura todos los golpes)
                     rootPart.Size = tamañoMasivo
-                    rootPart.Transparency = 0.7 -- Se ve como un cubo gris para apuntar fácil
+                    rootPart.Transparency = 0.7 
                     rootPart.CanCollide = false
                 else
-                    -- ESTADO APAGADO: Todo regresa a la normalidad al instante
                     rootPart.Size = tamañoNormal
-                    rootPart.Transparency = 1 -- Vuelve a ser 100% invisible
+                    rootPart.Transparency = 1 
                 end
             end
         end
