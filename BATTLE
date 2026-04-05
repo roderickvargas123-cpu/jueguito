@@ -1,10 +1,9 @@
-if getgenv().AuraDeCombateV2 then return end
-getgenv().AuraDeCombateV2 = true
+if getgenv().AuraDeCombateV3 then return end
+getgenv().AuraDeCombateV3 = true
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -20,22 +19,14 @@ local cooldownAtaque = 0.3
 local ejecutandoAtaque = false
 
 -- ==========================================
--- INTERFAZ GRÁFICA (A PRUEBA DE FALLOS)
+-- INTERFAZ GRÁFICA (UI NORMAL)
 -- ==========================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AuraGUI"
-screenGui.ResetOnSpawn = false -- Evita que la UI desaparezca si tu personaje muere
+screenGui.Name = "AuraGUI_Normal"
+screenGui.ResetOnSpawn = false 
 
--- Sistema inteligente para encontrar dónde guardar la UI sin crashear
-local success = pcall(function()
-    local hiddenUI = (gethui and gethui()) or CoreGui
-    screenGui.Parent = hiddenUI
-end)
-
--- Si el inyector no tiene permisos de Nivel 6 para CoreGui, usamos tu pantalla normal
-if not success then
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-end
+-- Lo mandamos directo a tu pantalla, sin trucos
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 70)
@@ -65,13 +56,15 @@ hideLabel.TextSize = 14
 hideLabel.Parent = frame
 
 -- ==========================================
--- CONTROL DE TECLAS (TOGGLE)
+-- CONTROL DE TECLAS (TOGGLE E INSERT)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Tecla INSERT para ocultar/mostrar la interfaz
     if input.KeyCode == Enum.KeyCode.Insert then
         screenGui.Enabled = not screenGui.Enabled
     end
 
+    -- Tecla P para encender/apagar la expansión de hitbox
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
         expanderActivado = not expanderActivado 
         
@@ -115,7 +108,7 @@ RunService.RenderStepped:Connect(function()
             
             local rootPart = jugador.Character.HumanoidRootPart
             
-            -- 1. CAPA DE AUTO-HIT
+            -- 1. CAPA DE AUTO-HIT (Siempre activa)
             if armaEquipada then
                 local distancia = (miPosicion - rootPart.Position).Magnitude
                 if distancia <= rangoDePeligro then
@@ -123,7 +116,7 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- 2. CAPA DE EXPANSIÓN
+            -- 2. CAPA DE EXPANSIÓN (Controlada por 'P')
             if expanderActivado then
                 rootPart.Size = tamañoMasivo
                 rootPart.Transparency = 0.7 
