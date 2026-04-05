@@ -1,55 +1,43 @@
-if _G.AuraDiagnosticoV4 then 
-    print("[!] El script ya estaba inyectado. Cambia de servidor para reiniciar.")
-    return 
-end
-_G.AuraDiagnosticoV4 = true
+-- Usamos _G para evitar el error de valor nulo en tu inyector
+if _G.HitboxToggleScript then return end
+_G.HitboxToggleScript = true
 
-print("[1] Iniciando inyección. Cargando servicios...")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
 -- CONFIGURACIÓN DEL SISTEMA
 -- ==========================================
 local expanderActivado = false 
-local tamañoMasivo = Vector3.new(15, 15, 15)
-local tamañoNormal = Vector3.new(2, 2, 1)
+local tamañoMasivo = Vector3.new(15, 15, 15) -- Tamaño gigante de la hitbox
+local tamañoNormal = Vector3.new(2, 2, 1)    -- Tamaño normal de Roblox
 
-local rangoDePeligro = 12 
-local cooldownAtaque = 0.3 
-local ejecutandoAtaque = false
-
-print("[2] Servicios listos. Construyendo Interfaz...")
 -- ==========================================
--- INTERFAZ GRÁFICA
+-- INTERFAZ GRÁFICA (UI NORMAL Y ESTABLE)
 -- ==========================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AuraGUI_V4"
-screenGui.ResetOnSpawn = false 
+screenGui.Name = "HitboxGUI"
+screenGui.ResetOnSpawn = false
 
--- Evitamos el WaitForChild para que el inyector no se congele
-local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-if playerGui then
-    screenGui.Parent = playerGui
-    print("[3] UI asignada a PlayerGui con éxito.")
-else
-    print("[ERROR] No se encontró PlayerGui. El inyector está cargando demasiado rápido.")
-end
+-- Enviamos la UI directo a tu pantalla para evitar bloqueos del inyector
+local playerGui = LocalPlayer:FindFirstChild("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 70)
 frame.Position = UDim2.new(0.02, 0, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 frame.BorderSizePixel = 2
-frame.BorderColor3 = Color3.fromRGB(255, 0, 0) 
+frame.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Inicia en rojo (Apagado)
 frame.Parent = screenGui
 
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(1, 0, 0, 40)
 textLabel.BackgroundTransparency = 1
-textLabel.Text = "[ EXPANSIÓN: APAGADA ]"
+textLabel.Text = "[ HITBOX: APAGADO ]"
 textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 textLabel.Font = Enum.Font.Code
 textLabel.TextSize = 13
@@ -65,79 +53,53 @@ hideLabel.Font = Enum.Font.SourceSans
 hideLabel.TextSize = 14
 hideLabel.Parent = frame
 
-print("[4] Configurando controles de teclado...")
 -- ==========================================
 -- CONTROL DE TECLAS (TOGGLE E INSERT)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Ocultar/Mostrar el pequeño menú visual
     if input.KeyCode == Enum.KeyCode.Insert then
         screenGui.Enabled = not screenGui.Enabled
     end
 
+    -- Activar/Desactivar el expansor con la letra 'P'
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
-        expanderActivado = not expanderActivado 
+        expanderActivado = not expanderActivado -- Esto crea el efecto "Toggle"
         
+        -- Actualiza los colores y el texto de la interfaz
         if expanderActivado then
             frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
             textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-            textLabel.Text = "[ EXPANSIÓN: ENCENDIDA ]"
-            print("[+] Expansión activada")
+            textLabel.Text = "[ HITBOX: ENCENDIDA ]"
         else
             frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
             textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-            textLabel.Text = "[ EXPANSIÓN: APAGADA ]"
-            print("[-] Expansión desactivada")
+            textLabel.Text = "[ HITBOX: APAGADO ]"
         end
     end
 end)
 
 -- ==========================================
--- FUNCIÓN DE GATILLO AUTOMÁTICO
--- ==========================================
-local function EjecutarAutoHit(arma)
-    if ejecutandoAtaque then return end
-    ejecutandoAtaque = true
-    
-    arma:Activate()
-    
-    task.delay(cooldownAtaque, function()
-        ejecutandoAtaque = false
-    end)
-end
-
-print("[5] Iniciando motor de combate y escáner...")
--- ==========================================
--- EL MOTOR PRINCIPAL (RenderStepped)
+-- MOTOR DE EXPANSIÓN (Hitbox Expander)
 -- ==========================================
 RunService.RenderStepped:Connect(function()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local miPosicion = LocalPlayer.Character.HumanoidRootPart.Position
-    local armaEquipada = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    
-    for _, jugador in ipairs(Players:GetPlayers()) do
-        if jugador ~= LocalPlayer and jugador.Character and jugador.Character:FindFirstChild("HumanoidRootPart") then
+    for _, player in ipairs(Players:GetPlayers()) do
+        -- Solo alteramos a los enemigos, tu personaje se queda normal
+        if player ~= LocalPlayer and player.Character then
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
             
-            local rootPart = jugador.Character.HumanoidRootPart
-            
-            if armaEquipada then
-                local distancia = (miPosicion - rootPart.Position).Magnitude
-                if distancia <= rangoDePeligro then
-                    EjecutarAutoHit(armaEquipada)
+            if rootPart then
+                if expanderActivado then
+                    -- ESTADO ENCENDIDO: Caja de colisión gigante (Asegura todos los golpes)
+                    rootPart.Size = tamañoMasivo
+                    rootPart.Transparency = 0.7 -- Se ve como un cubo gris para apuntar fácil
+                    rootPart.CanCollide = false
+                else
+                    -- ESTADO APAGADO: Todo regresa a la normalidad al instante
+                    rootPart.Size = tamañoNormal
+                    rootPart.Transparency = 1 -- Vuelve a ser 100% invisible
                 end
             end
-
-            if expanderActivado then
-                rootPart.Size = tamañoMasivo
-                rootPart.Transparency = 0.7 
-                rootPart.CanCollide = false
-            else
-                rootPart.Size = tamañoNormal
-                rootPart.Transparency = 1
-            end
-            
         end
     end
 end)
-
-print("[6] ¡Inyección completada con éxito! Listo para usar.")
