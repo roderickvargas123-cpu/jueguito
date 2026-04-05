@@ -1,8 +1,8 @@
-if getgenv().AuraDiagnosticoV4 then 
+if _G.AuraDiagnosticoV4 then 
     print("[!] El script ya estaba inyectado. Cambia de servidor para reiniciar.")
     return 
 end
-getgenv().AuraDiagnosticoV4 = true
+_G.AuraDiagnosticoV4 = true
 
 print("[1] Iniciando inyección. Cargando servicios...")
 local Players = game:GetService("Players")
