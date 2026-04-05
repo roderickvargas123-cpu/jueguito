@@ -1,10 +1,13 @@
-if getgenv().AuraDeCombateV3 then return end
-getgenv().AuraDeCombateV3 = true
+if getgenv().AuraDiagnosticoV4 then 
+    print("[!] El script ya estaba inyectado. Cambia de servidor para reiniciar.")
+    return 
+end
+getgenv().AuraDiagnosticoV4 = true
 
+print("[1] Iniciando inyección. Cargando servicios...")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
@@ -18,15 +21,22 @@ local rangoDePeligro = 12
 local cooldownAtaque = 0.3 
 local ejecutandoAtaque = false
 
+print("[2] Servicios listos. Construyendo Interfaz...")
 -- ==========================================
--- INTERFAZ GRÁFICA (UI NORMAL)
+-- INTERFAZ GRÁFICA
 -- ==========================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AuraGUI_Normal"
+screenGui.Name = "AuraGUI_V4"
 screenGui.ResetOnSpawn = false 
 
--- Lo mandamos directo a tu pantalla, sin trucos
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Evitamos el WaitForChild para que el inyector no se congele
+local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+if playerGui then
+    screenGui.Parent = playerGui
+    print("[3] UI asignada a PlayerGui con éxito.")
+else
+    print("[ERROR] No se encontró PlayerGui. El inyector está cargando demasiado rápido.")
+end
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 70)
@@ -55,16 +65,15 @@ hideLabel.Font = Enum.Font.SourceSans
 hideLabel.TextSize = 14
 hideLabel.Parent = frame
 
+print("[4] Configurando controles de teclado...")
 -- ==========================================
 -- CONTROL DE TECLAS (TOGGLE E INSERT)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- Tecla INSERT para ocultar/mostrar la interfaz
     if input.KeyCode == Enum.KeyCode.Insert then
         screenGui.Enabled = not screenGui.Enabled
     end
 
-    -- Tecla P para encender/apagar la expansión de hitbox
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
         expanderActivado = not expanderActivado 
         
@@ -72,10 +81,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
             textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
             textLabel.Text = "[ EXPANSIÓN: ENCENDIDA ]"
+            print("[+] Expansión activada")
         else
             frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
             textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
             textLabel.Text = "[ EXPANSIÓN: APAGADA ]"
+            print("[-] Expansión desactivada")
         end
     end
 end)
@@ -94,6 +105,7 @@ local function EjecutarAutoHit(arma)
     end)
 end
 
+print("[5] Iniciando motor de combate y escáner...")
 -- ==========================================
 -- EL MOTOR PRINCIPAL (RenderStepped)
 -- ==========================================
@@ -108,7 +120,6 @@ RunService.RenderStepped:Connect(function()
             
             local rootPart = jugador.Character.HumanoidRootPart
             
-            -- 1. CAPA DE AUTO-HIT (Siempre activa)
             if armaEquipada then
                 local distancia = (miPosicion - rootPart.Position).Magnitude
                 if distancia <= rangoDePeligro then
@@ -116,7 +127,6 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- 2. CAPA DE EXPANSIÓN (Controlada por 'P')
             if expanderActivado then
                 rootPart.Size = tamañoMasivo
                 rootPart.Transparency = 0.7 
@@ -129,3 +139,5 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+print("[6] ¡Inyección completada con éxito! Listo para usar.")
