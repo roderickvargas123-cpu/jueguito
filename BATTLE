@@ -1,0 +1,52 @@
+-- Evita que el script se duplique si lo ejecutas varias veces
+if getgenv().HitboxExpander then return end
+getgenv().HitboxExpander = true
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Variables de configuración
+local expanderActivado = false
+local tamañoPocoHumano = Vector3.new(8, 8, 8) -- El tamaño gigante (8x8x8 studs)
+local tamañoNormal = Vector3.new(2, 2, 1) -- El tamaño normal de Roblox
+
+-- PARTE 1: EL INTERRUPTOR (TOGGLE)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Si presionas la tecla 'P', se invierte el estado
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
+        expanderActivado = not expanderActivado 
+        
+        -- Mensaje en la consola de F9 para que sepas si está prendido o apagado
+        if expanderActivado then
+            print("Hitbox Expander: ENCENDIDO")
+        else
+            print("Hitbox Expander: APAGADO")
+        end
+    end
+end)
+
+-- PARTE 2: EL MOTOR GRÁFICO (LA EXPANSIÓN)
+RunService.RenderStepped:Connect(function()
+    for _, jugador in ipairs(Players:GetPlayers()) do
+        -- Filtramos para no hacer gigante tu propio personaje
+        if jugador ~= LocalPlayer and jugador.Character and jugador.Character:FindFirstChild("HumanoidRootPart") then
+            
+            local rootPart = jugador.Character.HumanoidRootPart
+            
+            if expanderActivado then
+                -- ESTADO ENCENDIDO: Aumenta la probabilidad de golpe
+                rootPart.Size = tamañoPocoHumano
+                rootPart.Transparency = 0.7 -- Lo hace un poco visible (gris translúcido) para que veas la caja
+                rootPart.CanCollide = false
+            else
+                -- ESTADO APAGADO: Regresa a la normalidad
+                rootPart.Size = tamañoNormal
+                rootPart.Transparency = 1 -- Vuelve a ser 100% invisible
+            end
+            
+        end
+    end
+end)
