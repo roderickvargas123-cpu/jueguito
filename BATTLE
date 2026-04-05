@@ -1,50 +1,131 @@
--- Evita que el script se duplique si lo ejecutas varias veces
-if getgenv().HitboxExpander then return end
-getgenv().HitboxExpander = true
+if getgenv().AuraDeCombate then return end
+getgenv().AuraDeCombate = true
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Variables de configuración
-local expanderActivado = false
-local tamañoPocoHumano = Vector3.new(8, 8, 8) -- El tamaño gigante (8x8x8 studs)
-local tamañoNormal = Vector3.new(2, 2, 1) -- El tamaño normal de Roblox
+-- ==========================================
+-- CONFIGURACIÓN DEL SISTEMA
+-- ==========================================
+local expanderActivado = false -- La hitbox empieza apagada por defecto
+local tamañoMasivo = Vector3.new(15, 15, 15)
+local tamañoNormal = Vector3.new(2, 2, 1)
 
--- PARTE 1: EL INTERRUPTOR (TOGGLE)
+-- Auto-Hit (Siempre activo)
+local rangoDePeligro = 12 
+local cooldownAtaque = 0.3 
+local ejecutandoAtaque = false
+
+-- ==========================================
+-- INTERFAZ GRÁFICA (UI)
+-- ==========================================
+local hiddenUI = (gethui and gethui()) or CoreGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AuraGUI"
+screenGui.Parent = hiddenUI
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 70)
+frame.Position = UDim2.new(0.02, 0, 0.05, 0)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+frame.BorderSizePixel = 2
+frame.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Rojo: Expansión Apagada
+frame.Parent = screenGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 0, 40)
+textLabel.BackgroundTransparency = 1
+textLabel.Text = "[ EXPANSIÓN: APAGADA ]"
+textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+textLabel.Font = Enum.Font.Code
+textLabel.TextSize = 13
+textLabel.Parent = frame
+
+local hideLabel = Instance.new("TextLabel")
+hideLabel.Size = UDim2.new(1, 0, 0, 20)
+hideLabel.Position = UDim2.new(0, 0, 0, 40)
+hideLabel.BackgroundTransparency = 1
+hideLabel.Text = "[INSERT] para Ocultar Menú"
+hideLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+hideLabel.Font = Enum.Font.SourceSans
+hideLabel.TextSize = 14
+hideLabel.Parent = frame
+
+-- ==========================================
+-- CONTROL DE TECLAS (TOGGLE)
+-- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- Si presionas la tecla 'P', se invierte el estado
+    if input.KeyCode == Enum.KeyCode.Insert then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
+        -- Invierte el estado de la expansión
         expanderActivado = not expanderActivado 
         
-        -- Mensaje en la consola de F9 para que sepas si está prendido o apagado
+        -- Actualiza la interfaz visualmente
         if expanderActivado then
-            print("Hitbox Expander: ENCENDIDO")
+            frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+            textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+            textLabel.Text = "[ EXPANSIÓN: ENCENDIDA ]"
         else
-            print("Hitbox Expander: APAGADO")
+            frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
+            textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            textLabel.Text = "[ EXPANSIÓN: APAGADA ]"
         end
     end
 end)
 
--- PARTE 2: EL MOTOR GRÁFICO (LA EXPANSIÓN)
+-- ==========================================
+-- FUNCIÓN DE GATILLO AUTOMÁTICO (Optimizado)
+-- ==========================================
+local function EjecutarAutoHit(arma)
+    if ejecutandoAtaque then return end
+    ejecutandoAtaque = true
+    
+    -- Simula el clic legítimo
+    arma:Activate()
+    
+    -- Usamos task.delay en lugar de task.wait para no congelar los FPS del juego
+    task.delay(cooldownAtaque, function()
+        ejecutandoAtaque = false
+    end)
+end
+
+-- ==========================================
+-- EL MOTOR PRINCIPAL (RenderStepped)
+-- ==========================================
 RunService.RenderStepped:Connect(function()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local miPosicion = LocalPlayer.Character.HumanoidRootPart.Position
+    local armaEquipada = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    
     for _, jugador in ipairs(Players:GetPlayers()) do
-        -- Filtramos para no hacer gigante tu propio personaje
         if jugador ~= LocalPlayer and jugador.Character and jugador.Character:FindFirstChild("HumanoidRootPart") then
             
             local rootPart = jugador.Character.HumanoidRootPart
             
+            -- 1. CAPA DE AUTO-HIT (Siempre vigilando)
+            if armaEquipada then
+                local distancia = (miPosicion - rootPart.Position).Magnitude
+                if distancia <= rangoDePeligro then
+                    EjecutarAutoHit(armaEquipada)
+                end
+            end
+
+            -- 2. CAPA DE EXPANSIÓN (Controlada por el Toggle)
             if expanderActivado then
-                -- ESTADO ENCENDIDO: Aumenta la probabilidad de golpe
-                rootPart.Size = tamañoPocoHumano
-                rootPart.Transparency = 0.7 -- Lo hace un poco visible (gris translúcido) para que veas la caja
+                rootPart.Size = tamañoMasivo
+                rootPart.Transparency = 0.7 
                 rootPart.CanCollide = false
             else
-                -- ESTADO APAGADO: Regresa a la normalidad
                 rootPart.Size = tamañoNormal
-                rootPart.Transparency = 1 -- Vuelve a ser 100% invisible
+                rootPart.Transparency = 1
             end
             
         end
