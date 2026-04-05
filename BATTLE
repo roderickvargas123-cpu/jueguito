@@ -1,5 +1,5 @@
-if getgenv().AuraDeCombate then return end
-getgenv().AuraDeCombate = true
+if getgenv().AuraDeCombateV2 then return end
+getgenv().AuraDeCombateV2 = true
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,29 +11,38 @@ local LocalPlayer = Players.LocalPlayer
 -- ==========================================
 -- CONFIGURACIÓN DEL SISTEMA
 -- ==========================================
-local expanderActivado = false -- La hitbox empieza apagada por defecto
+local expanderActivado = false 
 local tamañoMasivo = Vector3.new(15, 15, 15)
 local tamañoNormal = Vector3.new(2, 2, 1)
 
--- Auto-Hit (Siempre activo)
 local rangoDePeligro = 12 
 local cooldownAtaque = 0.3 
 local ejecutandoAtaque = false
 
 -- ==========================================
--- INTERFAZ GRÁFICA (UI)
+-- INTERFAZ GRÁFICA (A PRUEBA DE FALLOS)
 -- ==========================================
-local hiddenUI = (gethui and gethui()) or CoreGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AuraGUI"
-screenGui.Parent = hiddenUI
+screenGui.ResetOnSpawn = false -- Evita que la UI desaparezca si tu personaje muere
+
+-- Sistema inteligente para encontrar dónde guardar la UI sin crashear
+local success = pcall(function()
+    local hiddenUI = (gethui and gethui()) or CoreGui
+    screenGui.Parent = hiddenUI
+end)
+
+-- Si el inyector no tiene permisos de Nivel 6 para CoreGui, usamos tu pantalla normal
+if not success then
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 70)
 frame.Position = UDim2.new(0.02, 0, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 frame.BorderSizePixel = 2
-frame.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Rojo: Expansión Apagada
+frame.BorderColor3 = Color3.fromRGB(255, 0, 0) 
 frame.Parent = screenGui
 
 local textLabel = Instance.new("TextLabel")
@@ -64,10 +73,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then
-        -- Invierte el estado de la expansión
         expanderActivado = not expanderActivado 
         
-        -- Actualiza la interfaz visualmente
         if expanderActivado then
             frame.BorderColor3 = Color3.fromRGB(0, 255, 0)
             textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -81,16 +88,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ==========================================
--- FUNCIÓN DE GATILLO AUTOMÁTICO (Optimizado)
+-- FUNCIÓN DE GATILLO AUTOMÁTICO
 -- ==========================================
 local function EjecutarAutoHit(arma)
     if ejecutandoAtaque then return end
     ejecutandoAtaque = true
     
-    -- Simula el clic legítimo
     arma:Activate()
     
-    -- Usamos task.delay en lugar de task.wait para no congelar los FPS del juego
     task.delay(cooldownAtaque, function()
         ejecutandoAtaque = false
     end)
@@ -110,7 +115,7 @@ RunService.RenderStepped:Connect(function()
             
             local rootPart = jugador.Character.HumanoidRootPart
             
-            -- 1. CAPA DE AUTO-HIT (Siempre vigilando)
+            -- 1. CAPA DE AUTO-HIT
             if armaEquipada then
                 local distancia = (miPosicion - rootPart.Position).Magnitude
                 if distancia <= rangoDePeligro then
@@ -118,7 +123,7 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- 2. CAPA DE EXPANSIÓN (Controlada por el Toggle)
+            -- 2. CAPA DE EXPANSIÓN
             if expanderActivado then
                 rootPart.Size = tamañoMasivo
                 rootPart.Transparency = 0.7 
